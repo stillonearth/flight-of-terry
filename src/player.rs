@@ -10,12 +10,18 @@ pub struct Player;
 
 #[derive(Bundle)]
 pub struct PlayerBundle {
+    // Game-specific
     player: Player,
+    // Rapier
     rigid_body: RigidBody,
     velocity: Velocity,
     external_force: ExternalForce,
+    collider: Collider,
+    ccd: Ccd,
+    // Atmosphere and Terrrain
     atmosphere_camera: AtmosphereCamera,
     terrain_view: TerrainView,
+    // Camera
     #[bundle]
     camera_3d_bundle: Camera3dBundle,
 }
@@ -31,9 +37,11 @@ pub fn new_player_bundle(postion: Vec3) -> PlayerBundle {
             torque: Vec3::ZERO,
         },
         rigid_body: RigidBody::Dynamic,
+        ccd: Ccd::enabled(),
         player: Player,
         atmosphere_camera: AtmosphereCamera(None),
         terrain_view: TerrainView,
+        collider: Collider::ball(1.0),
         camera_3d_bundle: Camera3dBundle {
             camera: Camera {
                 priority: 1,
@@ -63,7 +71,6 @@ bitflags! {
 pub fn keyboard_control(
     keys: Res<Input<KeyCode>>,
     player_movement_q: Query<(&mut Velocity, &mut Transform), With<Player>>,
-    time: Res<Time>,
 ) {
     let mut player_action = PlayerActionFlags::IDLE;
 
@@ -88,16 +95,13 @@ pub fn keyboard_control(
         }
     }
 
-    control_player(player_action, player_movement_q, time);
+    control_player(player_action, player_movement_q);
 }
 
 pub fn control_player(
     player_action: PlayerActionFlags,
     mut player_movement_q: Query<(&mut Velocity, &mut Transform), With<Player>>,
-    time: Res<Time>,
 ) {
-    let seconds = time.delta_seconds();
-
     for (mut velocity, mut transform) in player_movement_q.iter_mut() {
         *velocity = Velocity::linear(velocity.linvel);
 
@@ -110,11 +114,9 @@ pub fn control_player(
 
         if player_action.contains(PlayerActionFlags::PITCH_UP) {
             velocity.angvel = transform.left() * 0.5 * 3.14;
-            // *velocity = velocity.with_angular(AxisAngle::new(transform.left(), 0.5 * 3.14));
         }
         if player_action.contains(PlayerActionFlags::PITCH_DOWN) {
             velocity.angvel = -transform.left() * 0.5 * 3.14;
-            // *velocity = velocity.with_angular(AxisAngle::new(transform.left(), -0.5 * 3.14));
         }
 
         // if player_action.contains(PlayerActionFlags::ENGINE_UP) {

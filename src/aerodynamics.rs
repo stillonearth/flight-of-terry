@@ -8,7 +8,7 @@ use crate::player::*;
 // Physics and Aerodynamics
 
 pub fn aerodynamical_forces(
-    mut q_player_movement: Query<(&mut Velocity, &mut Transform), With<Player>>,
+    mut q_player_movement: Query<(&mut Velocity, &mut Transform, &mut ExternalForce), With<Player>>,
     mut set: ParamSet<(
         Query<&mut Text, With<TextVelocity>>,
         Query<&mut Text, With<TextRoll>>,
@@ -22,26 +22,26 @@ pub fn aerodynamical_forces(
     const COEFF_S: f32 = 62.04;
     const MASS_PLANE: f32 = 20873.0;
 
-    let (velocity, transform) = q_player_movement.iter_mut().last().unwrap();
+    let (velocity, transform, mut force) = q_player_movement.iter_mut().last().unwrap();
+    let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
 
-    let (roll, pitch, mut yaw) = transform.rotation.to_euler(EulerRot::ZXY);
-    yaw = 0.0;
+    let fwd_vec = transform.forward().normalize();
+    let velocity_fwd = (velocity.linvel * fwd_vec).y;
 
-    let velocity_fwd = (Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll) * velocity.linvel)
-        .x
-        .abs();
+    println!("velocity_fwd: {}", velocity.linvel * fwd_vec);
 
     let density = air_density(transform.translation.y as f64) as f32;
     let force_lift: f32 = COEFF_LIFT * density * velocity_fwd.powf(2.0) * COEFF_S / 2.0;
 
-    let acc_vec = Vec3::new(
-        0.0, //(FORCE_THRUST - FORCE_DRAG) / MASS_PLANE,
-        0.0, //force_lift / MASS_PLANE - 9.81,
+    force.force = Vec3::new(
+        2.0,  //FORCE_THRUST - FORCE_DRAG,
+        -1.0, //force_lift / MASS_PLANE - MASS_PLANE * 9.81,
         0.0,
     );
 
     // Update debug text
     for mut text in &mut set.p0() {
+        let vx = velocity.linvel.y - velocity_fwd;
         text.sections[1].value = format!("{velocity_fwd:.2}");
     }
 

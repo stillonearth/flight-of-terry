@@ -33,7 +33,7 @@ fn main() {
         .add_plugin(AtmospherePlugin)
         // Physics
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierDebugRenderPlugin::default())
+        // .add_plugin(RapierDebugRenderPlugin::default())
         // .insert_resource(Gravity::from(Vec3::new(0.0, -9.81, 0.0)))
         // Startup Systems
         .add_startup_system(setup)
@@ -96,7 +96,10 @@ fn setup(
 
     // Create plane
     let player_bundle = new_player_bundle(Vec3::new(250.0, 500.0, 250.0));
-    let view = commands.spawn_bundle(player_bundle).id();
+    let view = commands
+        .spawn_bundle(player_bundle)
+        .insert(GravityScale(0.0))
+        .id();
 
     // Store the quadtree and the view config for the terrain and view.
     // This will hopefully be way nicer once the ECS can handle relations.
